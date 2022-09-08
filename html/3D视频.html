@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js - pointerlock controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+
+			#blocker {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="blocker">
+			<div id="instructions">
+				<p style="font-size:36px">
+
+				</p>
+			</div>
+		</div>
+
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE from '../build/three.module.js';
+			import {
+				PointerLockControls
+			} from '../examples/jsm/controls/PointerLockControls.js';
+			import Stats from '../examples/jsm/libs/stats.module.js';
+			import {
+				GLTFLoader
+			} from '../examples/jsm/loaders/GLTFLoader.js';
+			import {
+				ThreeMFLoader
+			} from '../examples/jsm/loaders/3MFLoader.js';
+			import {
+				OrbitControls
+			} from '../examples/jsm/controls/OrbitControls.js';
+			import { DRACOLoader } from '../examples/jsm/loaders/DRACOLoader.js';
+			import { Water } from '../examples/jsm/objects/Water.js';
+
+			const SCREEN_WIDTH = window.innerWidth,
+				SCREEN_HEIGHT = window.innerHeight;
+			let camera, scene, renderer, controls;
+			let lightHelper,lightHelper2;
+			let stats;
+			const curveHandles = [];
+			let raycaster = new THREE.Raycaster(); // 点击拾取位置 计算出 三维法向量
+			let wheel = false;
+			let time,timer;
+			
+			
+
+			init();
+			animate();
+
+			function init() {
+				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 2000);
+
+				scene = new THREE.Scene();
+				
+				var textureLoader = new THREE.TextureLoader();
+				var texture = textureLoader.load('./image/bcg.jpg');
+				scene.background = texture
+				scene.castShadow = true;
+				log(scene)
+				
+				controls = new OrbitControls(camera, document.body)
+				controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(-300, 200, 500);
+				
+				createGrid() // 网格地面
+				useAxesHelper() // 标准尺
+				createLight() // 创建光
+				addGeometry();
+				render() // 渲染
+				useStats() // fps 状态
+				window.addEventListener('resize', onWindowResize);
+			}
+			
+			function addGeometry() {
+				
+				const skyGeometry = new THREE.SphereGeometry(1000, 60, 60);
+				const skyMaterial = new THREE.MeshBasicMaterial({
+					map: new THREE.TextureLoader().load("./image/sky.jpg"),
+				});
+				skyGeometry.scale(1,0.8,-1)
+				// skyGeometry.position.y = 200
+				const sky = new THREE.Mesh(skyGeometry,skyMaterial);
+				sky.position.y = 200
+				scene.add(sky);
+				
+				const video = document.createElement("video");
+				video.src = "./video/sky.mp4";
+				video.loop = true;
+				
+				
+				window.addEventListener("mousemove", (e) => {
+					if(video.paused) {
+						video.play();
+						var texture = new THREE.VideoTexture( video );
+						texture.minFilter = THREE.LinearFilter;
+						texture.format = THREE.RGBFormat;
+						skyMaterial.map = texture;
+						// texture.minFilter = THREE.LinearFilter;
+						// texture.format = THREE.RGBFormat;
+					}
+				})
+				
+				// const wateGeometry = new THREE.CircleBufferGeometry(300,64);
+				// const water = new Water(wateGeometry,{
+				// 	textureWidth: 1024,
+				// 	textureHeight: 1024,
+				// 	color: 0xf0f0f0,
+				// 	flowDirection: new THREE.Vector2(2,2),
+				// 	scale: 1,
+				// })
+				// water.rotation.x = -Math.PI / 2
+				// scene.add(water);
+				
+			}
+			
+			
+			
+			
+
+			function animate() {
+				requestAnimationFrame(animate);
+				renderer.render(scene, camera);
+				controls.update()
+				stats.update();
+			}
+			// 渲染
+			function render() {
+				
+				renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+			}
+
+			function createLight() {
+				// 环境光
+				const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+				scene.add(ambient);
+
+				// 平面光
+				const spotLight = new THREE.SpotLight(0xffffff, 1);
+				spotLight.position.set(500, 30,  200);
+				scene.add(spotLight);
+				
+				const spotLight2 = new THREE.SpotLight(0xffffff, 0.7);
+				spotLight2.position.set(0, 120, 0);
+				scene.add(spotLight2);
+				
+			
+			// 	// 辅助光源
+			// 	lightHelper = new THREE.SpotLightHelper( spotLight );
+			// 	lightHelper2  = new THREE.SpotLightHelper( spotLight2 );
+			// 	// scene.add( lightHelper );
+			// 	scene.add( lightHelper2 );
+			}
+
+			function createGrid() {
+				// 添加网格地面
+				const gridHelper = new THREE.GridHelper(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+				gridHelper.material.opacity = 0.5;
+				gridHelper.material.transparent = true;
+				scene.add(gridHelper);
+			}
+
+
+
+			function useAxesHelper() {
+				// 设置 标准尺
+				const axesHelper = new THREE.AxesHelper(100);
+				scene.add(axesHelper);
+			}
+			// fps 状态
+			function useStats() {
+				stats = new Stats()
+				document.body.appendChild(stats.dom)
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+
+			function log(info) {
+				console.log(info)
+			}
+		</script>
+	</body>
+</html>
