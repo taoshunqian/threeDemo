@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<style type="text/css">
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<script type="module">
+			import * as THREE from '../build/three.module.js';
+			import { OrbitControls } from '../examples/jsm/controls/OrbitControls.js';
+			import { GLTFLoader } from '../examples/jsm/loaders/GLTFLoader.js';
+			let scene = new THREE.Scene();
+			let mesh;
+			const mixers = [];
+			let stemMesh, blossomMesh;
+			let stemGeometry, blossomGeometry;
+			let stemMaterial, blossomMaterial;
+			
+			const clock = new THREE.Clock();
+			
+			let camera = new THREE.PerspectiveCamera(75,window.innerWidth / window.innerHeight, 0.1, 1000);
+			camera.position.set(100,20,20);
+			
+			// 标准尺
+			// const axesHelper = new THREE.AxesHelper( 5 );
+			// scene.add( axesHelper );
+			
+			
+			// const gt = new THREE.TextureLoader().load("../examples/textures/terrain/grasslight-big.jpg")
+			// const gg = new THREE.PlaneGeometry(2000, 2000);
+			// const gm = new THREE.MeshPhongMaterial({color: 0xffffff ,map:gt});
+			
+			// const ground = new THREE.Mesh(gg, gm);
+			// ground.rotation.x = -Math.PI / 2;
+			// ground.material.map.repeat.set(40,40);
+			// ground.material.map.wrapS = ground.material.map.wrapT = THREE.RepeatWrapping;
+			// ground.material.map.encoding = THREE.sRGBEncoding;
+			// ground.receiveShadow = false;
+			// scene.add( ground );
+			
+			
+			scene.background = new THREE.CubeTextureLoader()
+				.setPath( '../examples/textures/cube/Park3Med/' )
+				.load( [ 'px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg' ] );
+			
+			
+			
+			
+			
+			// 添加网格地面
+			const gridHelper = new THREE.GridHelper(window.innerWidth , window.innerHeight)
+			gridHelper.material.opacity = 0;
+			gridHelper.material.transparent = true;
+			
+			scene.add(gridHelper);
+			
+			scene.add(camera);
+			
+			var renderer = new THREE.WebGLRenderer({
+				antialias: true
+			});
+			renderer.setSize(window.innerWidth , window.innerHeight); // 设置渲染器区域尺寸
+			renderer.setClearColor(0xb9d3ff, 1) // 设置背景颜色
+			document.body.appendChild(renderer.domElement); // body元素中插入canvas对象
+			
+			
+			let controls = new OrbitControls(camera, renderer.domElement);
+			
+			
+			
+			function animate() {
+				requestAnimationFrame(animate);
+				render();
+			}
+			var dis = true;
+			function render() {
+				const time = -performance.now() / 1000;
+				
+				const delta = clock.getDelta();
+				for ( let i = 0; i < mixers.length; i ++ ) {
+					if(dis) {
+						if(mesh.position.z < 50) {
+							mesh.position.z++;
+						} else {
+							if(mesh.position.z != 100) {
+								mesh.position.z++;
+								mesh.position.x--;
+							} else {
+								dis = false
+							}
+						}
+						gridHelper.position.z = (time) % 5;
+						gridHelper.position.x = (time) % 5;
+						// ground.position.x = (time) % 5;
+						// ground.position.z = (time) % 5;
+					} else {
+						mesh.rotation.y = Math.PI;
+						if(mesh.position.z < 50) {
+							if(mesh.position.z == -100) {
+								dis = true;
+								mesh.rotation.y = -Math.PI / 2;
+							} else {
+								mesh.position.z--;
+							}
+						} else {
+							mesh.position.z--;
+							mesh.position.x++;
+							gridHelper.position.z = (time) % 5;
+							// ground.position.z = (time) % 5;
+						}
+						
+					}
+					
+					
+					mixers[i].update(delta);
+				}
+				
+				renderer.render(scene,camera);
+				
+			}
+			
+			animate()
+			
+			
+			let missile;
+			let mapwkl;
+			let mapels;
+			
+			let loader = new GLTFLoader();
+			loader.load(
+				"../examples/models/gltf/Flamingo.glb",
+				function (gltf) {
+					mesh = gltf.scene.children[0];
+					const s = 0.3;
+					mesh.scale.set(s,s,s); // 缩小
+					mesh.position.y = 30;
+					mesh.rotation.y = -1;
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;
+					scene.add(mesh);
+					
+					const mixer = new THREE.AnimationMixer(mesh);
+					mixer.clipAction(gltf.animations[0]).setDuration(1).play();
+					mixers.push(mixer);
+					
+				},
+				function (xhr) {
+					// console.log((xhr.loaded / xhr.total) * 100 + "% loaded")
+				},
+				function (error) {
+					console.log("error")
+				}
+			)
+			
+			
+			const light1 = new THREE.DirectionalLight(0xffffff, 1);
+			light1.position.set(100,300,10);
+			scene.add(light1)
+			let mixer = new THREE.AnimationMixer( scene );
+			
+			
+		</script>
+	</body>
+</html>

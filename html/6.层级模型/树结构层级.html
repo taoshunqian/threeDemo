@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<script src="../../build/three.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../../examples/js/controls/OrbitControls.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+	<style type="text/css">
+		* {
+			margin: 0px;
+			padding: 0px;
+		}
+	</style>
+	<body>
+		<script type="text/javascript">
+			/*
+			0x 表示十六进制
+			*/ 
+			// 创建场景对象Scene;
+			var scene = new THREE.Scene;
+			/*
+			创建网格模式
+			*/ 
+			var group = new THREE.Group();
+			var legGroup = new THREE.Group();
+			var personGroup = new THREE.Group();
+			
+			var heahMesh = sphereMesh(10,0,0,0);
+			heahMesh.name = "脑壳"
+			var leftEyeMesh =  sphereMesh(1,8,5,4);
+			leftEyeMesh.name = "左眼"
+			var rightEyeMesh =  sphereMesh(1,8,5,-4);
+			rightEyeMesh.name = "右眼"
+			
+			group.add(
+				heahMesh,
+				leftEyeMesh,
+				rightEyeMesh
+			);
+			group.name="头部"
+			
+			var neckMesh = cylinderMesh(3,10,0,-10,0);
+			neckMesh.name = "脖子";
+			var bodyMesh = cylinderMesh(12,30,0,-30,0);
+			bodyMesh.name = "腹部";
+			var leftLegMesh = cylinderMesh(4,40,0,-60,-7);
+			leftLegMesh.name = "左腿";
+			var rightLegMesh = cylinderMesh(4,40,0,-60,7);
+			rightLegMesh.name = "右腿";
+			legGroup.add(
+				neckMesh,
+				bodyMesh,
+				leftLegMesh,
+				rightLegMesh
+			)
+			
+			personGroup.add(group,legGroup)
+			
+			
+			function sphereMesh(R,x,y,z) {
+				var geomentry = new THREE.SphereGeometry(R,25,25) // 创建一个立方体 [长，宽，高]
+				// 材质
+				var material = new THREE.MeshPhongMaterial({
+					color: 0xFFF8F5,
+				}); // 网格材质 光源与漫发射光照计算并且也计算高光(镜面反射)
+				var mesh = new THREE.Mesh(geomentry,material); // 网格模型对象Mesh
+				mesh.position.set(x, y, z);
+				return mesh;
+			}
+			function cylinderMesh(R, h, x, y, z) {
+				var geomentry = new THREE.CylinderGeometry(R,R,h,25,25);
+				// 材质
+				var material = new THREE.MeshPhongMaterial({
+					color: 0xFFF8F5,
+				}); // 网格材质 光源与漫发射光照计算并且也计算高光(镜面反射)
+				var mesh = new THREE.Mesh(geomentry,material);
+				mesh.position.set(x,y,z);
+				return mesh;
+			}
+			scene.add(personGroup); // 网格模式添加到场景中
+			
+			// 递归遍历方法
+			scene.traverse(function(obj) {
+				if(obj.name == "左眼" || obj.name == "右眼") {
+					obj.material.color.set(0x000000)
+				}
+				if(obj.type == "Mesh") {
+					obj.material.color.set(0xffff00)
+				}
+			})
+			var idNode = scene.getObjectById(4)
+			console.log(idNode)
+			var nameNode = scene.getObjectByName("左腿");
+			nameNode.material.color.set(0xff0000)
+			
+			
+			var axisHelper = new THREE.AxisHelper(40);
+			scene.add(axisHelper)
+			
+			/*
+			光源设置
+			*/ 
+			// 点光源
+			var point = new THREE.PointLight(0xffffff);
+			point.position.set(40,40,20) // 点光源位置
+			scene.add(point); // 点光源添加到场景中
+			// 环境光
+			var ambient = new THREE.AmbientLight(0x444444);
+			scene.add(ambient);
+			/*
+			相机设置
+			*/ 
+			var width = window.innerWidth; // 窗口宽度
+			var height = window.innerHeight; // 窗口高度
+			var k = width / height; // 窗口宽高比
+			var s = 100; // 三维场景显示范围控制系数，系数越大，显示的范围越大
+			// 创建相机对象
+			var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+			camera.position.set(40,40,60); // 设置相机位置 [x,z,y]
+			camera.lookAt(scene.position); // 设置相机方向（指向的场景对象）
+
+			/*
+			创建渲染器对象
+			*/ 
+			var renderor = new THREE.WebGLRenderer();
+			renderor.setSize(width, height); // 设置渲染器区域尺寸
+			renderor.setClearColor(0xb9d3ff, 1) // 设置背景颜色
+			document.body.appendChild(renderor.domElement); // body元素中插入canvas对象
+			
+			
+			let T0 = new Date();
+			function render() {
+				let T1 = new Date();
+				let t = T1 - T0;
+				T0 = T1;
+				requestAnimationFrame(render);
+				renderor.render(scene,camera) // 执行渲染操作 指定场景。相机作为参数
+				personGroup.rotateY(0.01) // 每次绕y轴旋转0.01弧度
+				// group.scale.set(0.5,0.5,0.5)
+			}
+			console.log('查看group的子对象',group.children)
+			console.log('查看Scene的子对象',scene.children)
+			render();
+			var controls = new THREE.OrbitControls(camera,renderor.domElement)
+			// controls.addEventListener('change', render);
+		</script>
+	</body>
+</html>

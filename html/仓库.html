@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js - pointerlock controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+
+			#blocker {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="blocker">
+			<div id="instructions">
+				<p style="font-size:36px">
+
+				</p>
+			</div>
+		</div>
+
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE from '../build/three.module.js';
+			import {
+				PointerLockControls
+			} from '../examples/jsm/controls/PointerLockControls.js';
+			import Stats from '../examples/jsm/libs/stats.module.js';
+			import {
+				GLTFLoader
+			} from '../examples/jsm/loaders/GLTFLoader.js';
+			import {
+				ThreeMFLoader
+			} from '../examples/jsm/loaders/3MFLoader.js';
+			import {
+				OrbitControls
+			} from '../examples/jsm/controls/OrbitControls.js';
+			import {
+				GUI
+			} from '../examples/jsm/libs/dat.gui.module.js';
+			import { DRACOLoader } from '../examples/jsm/loaders/DRACOLoader.js';
+			// import { LDrawLoader } from '../examples/jsm/loaders/LDrawLoader.js';
+			// const ldrawPath = 'models/ldraw/officialLibrary/';
+			// const modelFileList = {
+			// 	'Car': 'models/car.ldr_Packed.mpd',
+			// }
+
+			const SCREEN_WIDTH = window.innerWidth,
+				SCREEN_HEIGHT = window.innerHeight;
+			let camera, scene, renderer, controls;
+			let lightHelper,lightHelper2;
+			let stats;
+
+			let widthGround = 150,
+				heightGround = 250;
+			let wall = new THREE.Group();
+			let golge = new THREE.Group();
+			const curveHandles = [];
+			// window.addEventListener('click', meshOnClick);
+			let raycaster = new THREE.Raycaster();
+			let ObjectSects = [];
+			let light1;
+			let wheel = false;
+			
+			
+			
+			
+
+			init();
+			animate();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 1000);
+
+				scene = new THREE.Scene();
+				
+				scene.background = new THREE.Color(0x000000)
+				
+				controls = new OrbitControls(camera, document.body)
+				controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(-50, 150, 220);
+				controls.update();
+
+				createGround() // 地面
+				// createGrid() // 网格地面
+				addWall(); // 墙面
+				addWall2()
+				workbenchGroup()
+				addBox(); // 设置箱子
+				addSos(); // 设计轨道
+
+				useAxesHelper() // 标准尺
+				createLight() // 创建光
+				// creatModelCar();
+				render() // 渲染
+				useStats() // fps 状态
+				let timer,time = 0;
+				
+				window.addEventListener('resize', onWindowResize);
+				window.addEventListener("wheel",function(e){
+					wheel = true;
+					time = 0;
+					clearInterval(timer)
+					timer = setInterval(() => {
+						time++;
+						if(time == 5) {
+							wheel = false;
+						}
+					}, 1000);
+				})
+			}
+			
+			
+			function meshOnClick(event) {
+				// console.log(event)
+				
+			const pointer = new THREE.Vector2();
+				pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				  pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				  raycaster.setFromCamera( pointer, camera );
+				  var intersects = raycaster.intersectObjects(scene.children,true);
+				  if(intersects.length) {
+					  var mesh = intersects[0].object;
+					  log(mesh.name)
+				  }
+			}
+			
+			function creatModelCar(points) {
+				const shadow = new THREE.TextureLoader().load( '../examples/models/gltf/ferrari_ao.png' );
+				const dracoLoader = new DRACOLoader();
+				dracoLoader.setDecoderPath( '../examples/js/libs/draco/gltf/' );
+				const loader = new GLTFLoader();
+				loader.setDRACOLoader( dracoLoader );
+				loader.load("../examples/models/gltf/ferrari.glb", function(gltf) {
+					const carModel = gltf.scene.children[0];
+					mesh.rotation.x = -Math.PI / 2;
+					mesh.rendeerOrder = 50;
+					carModel.add( mesh );
+					log(carModel)
+					scene.add( carModel );
+				})
+			}
+			
+			function addSos() {
+				
+				const boxGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
+				const boxMaterial = new THREE.MeshBasicMaterial();
+				const initialPoints = [
+					{ x: -20, y: 0, z: -100 },
+					{ x: -20, y: 0, z: 75 },
+					{ x: -50, y: 0, z: 75 },
+					{ x: -20, y: 0, z: 75 },
+					
+					{ x: -20, y: 0, z: 28 },
+					{ x: -50, y: 0, z: 28 },
+					{ x: -20, y: 0, z: 28 },
+					{ x: -20, y: 0, z: -100 },
+					
+					{ x: -20, y: 0, z: 75 },
+					
+					{ x: 20, y: 0, z: 75 },
+					{ x: 50, y: 0, z: 75 },
+					{ x: -20, y: 0, z: 75 },
+					
+					{ x: -20, y: 0, z: 120 },
+					{ x: -50, y: 0, z: 120 },
+					{ x: -20, y: 0, z: 120 },
+					
+					{ x: -20, y: 0, z: 28 },
+					{ x: -50, y: 0, z: 28 },
+					{ x: -20, y: 0, z: 28 },
+					{ x: -20, y: 0, z: -100 },
+				];
+				for ( const handlePos of initialPoints ) {
+				
+					const handle = new THREE.Mesh( boxGeometry, boxMaterial );
+					handle.position.copy( handlePos );
+					curveHandles.push( handle );
+					scene.add( handle );
+				
+				}
+				const curve = new THREE.CatmullRomCurve3(
+					curveHandles.map( ( handle ) => handle.position )
+				);
+				curve.curveType = 'centripetal';
+				curve.closed = true;
+				const points = curve.getPoints( 2000 );
+				
+				// const line = new THREE.LineLoop(
+				// 	new THREE.BufferGeometry().setFromPoints( points ),
+				// 	new THREE.LineBasicMaterial( { color: 0x00ff00 } )
+				// );
+				// scene.add( line );
+				
+				// creatModelCar(points)
+				
+				let loader = new GLTFLoader();
+				loader.load(
+					"./小幽灵.glb",
+					function (gltf) {
+						var mesh = gltf.scene.children[0];
+						var group = new THREE.Group()
+						// var mesh.copy(mesh)
+						log(mesh)
+						const s = 2;
+						mesh.scale.set(s,s,s); // 缩小
+						
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+						mesh.name = "小幽灵";
+						const sphere = new THREE.SphereGeometry( 0.1, 0.1, 1 );
+						light1 = new THREE.PointLight( 0xff0040, 2, 50 );
+						light1.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
+						light1.position.set(0, 30 , 0)
+						mesh.position.set(0,5,0);
+						group.add(mesh)
+						group.add(light1)
+						group.position.set(initialPoints[0].x,initialPoints[0].y,initialPoints[0].z)
+						
+						// scene.add( light1 );
+						scene.add( group );
+						let _i = 0;
+						let num = 0;
+						let timer;
+						timer = setInterval(() => {
+							group.position.set(points[_i].x,points[_i].y,points[_i].z);
+							num++;
+							// camera.position.set(points[_i].x,points[_i].y,points[_i].z);
+							// if(!wheel) {
+							// 	camera.position.set(-points[_i].x,points[_i].y + 60,points[_i].z > 0 ? points[_i].z + 50 : points[_i].z   - 50);
+							// }
+							
+							
+							_i++;
+							if(_i>2000-1){
+								// clearInterval(timer)
+								_i = 0
+							}  else {
+								group.lookAt(points[_i+1].x,points[_i+1].y ,points[_i+1].z);
+								// if(num==100) {
+								// 	camera.lookAt(-points[_i +1].x,points[_i +1].y + 60,points[_i +1].z > 0 ? points[_i +1].z + 50 : points[_i + 1].z   - 50);
+								// 	num = 0
+								// }
+							// camera.lookAt(-points[_i +1].x,points[_i +1].y + 60,points[_i +1].z > 0 ? points[_i +1].z + 50 : points[_i + 1].z   - 50);
+							};
+						}, 20);
+						},
+					function (xhr) {
+						console.log((xhr.loaded / xhr.total) * 100 + "% loaded")
+					},
+					function (error) {
+						console.log("error")
+					}
+				)
+			}
+
+			// 箱子
+			function addBox() {
+				const boxVector3 = new THREE.Vector3(0, 0, 15);
+				let boxGround = new THREE.Group();
+				let boxGround2 = new THREE.Group();
+				let boxGround3 = new THREE.Group();
+				let boxGround4 = new THREE.Group();
+				
+				let boxGround5 = new THREE.Group();
+				let boxGround6 = new THREE.Group();
+				
+				boxGround.copy(createBox(5, 4, 50))
+				boxGround2.copy(createBox(5, 4, 30));
+				boxGround3.copy(createBox(5, 2, 40));
+				
+				boxGround4.copy(createBox(12, 2, 48));
+				boxGround4.position.set(0,0,80)
+				
+				boxGround6.copy(createBox(14, 3, 200));
+				boxGround6.position.set(0,0,100)
+				
+				boxGround5.copy(createBox(10, 5, 200));
+				boxGround5.position.set(80,0,0)
+				boxGround5.rotation.y = -Math.PI /2 
+				
+				boxGround.position.copy(boxVector3);
+				boxGround2.position.set(0, 0, 40);
+				
+				scene.add(boxGround);
+				scene.add(boxGround2);
+				scene.add(boxGround3);
+				scene.add(boxGround4);
+				scene.add(boxGround5);
+				scene.add(boxGround6);
+			}
+
+			// 行（row）和列（col） 当前箱数 
+			function createBox(row, col, newBoxNumber) {
+				let w = 5;
+				let x_length = 0;
+				let y_length = 0;
+				let z_length = 0;
+				let now_z = 1;
+				let now_y = 1;
+				let count = newBoxNumber;
+				let boxGround = new THREE.Group();
+				const geometry = new THREE.BoxBufferGeometry(w, w, w);
+				const cubeMaterial = new THREE.MeshLambertMaterial({
+					color: 0xfeb74c,
+					map: new THREE.TextureLoader().load('../examples/textures//square-outline-textured.png')
+				});
+				for (let i = 0; i < count; i++) {
+					if (i % (row * col * now_y) == 0 && i != 0) {
+						y_length = w * now_y;
+						now_z = 1;
+						z_length = 0;
+						x_length = 0;
+						now_y++;
+					}
+					if (i % row == 0) {
+						now_z++;
+						z_length = w * now_z;
+						x_length = w;
+					} else {
+						x_length += w;
+					}
+					let box = new THREE.Mesh(geometry, cubeMaterial);
+					box.name = "box" + i;
+					box.position.set(x_length, y_length + w / 2, z_length);
+					boxGround.add(box)
+					ObjectSects.push(box)
+				}
+
+				return boxGround;
+
+			}
+			
+			function workbenchGroup() {
+				const offsetY = 15;
+				let workbench = new THREE.Group();
+				const backWall = crateWall(widthGround / 2 - 40, 30, 0xcdcdcd);
+				const noodles = crateWall(widthGround / 2 - 45,20,0xcdcdcd);
+				const shade = crateWall(widthGround / 2 - 55,30,0xf0f0f0);
+				shade.rotation.y = Math.PI / 2;
+				shade.position.x = 18;
+				shade.position.z = 10;
+
+				const leg = crateWall(2,15,0xcdcdcd);
+				leg.position.z = 18;
+				leg.position.x = -10;
+				leg.position.y = -offsetY / 2 ;
+				const leg2 = new THREE.Mesh();
+				leg2.copy(leg);
+				leg2.position.x = 10;
+				
+				noodles.rotation.x = Math.PI / 2;
+				noodles.position.x = -2;
+				noodles.position.z = 10;
+				
+				workbench.add(leg2);
+				workbench.add(shade);
+				workbench.add(leg);
+				workbench.add(noodles);
+				workbench.add(backWall);
+				return workbench
+			}
+			
+			function addWall2() {
+				const offsetY = 15;
+				let workbench = new THREE.Group();
+				let workbench2 = new THREE.Group();
+				let workbench3 = new THREE.Group();
+				
+				workbench.copy(workbenchGroup())
+				workbench.position.x = - widthGround / 4  - 20;
+				workbench.position.y = offsetY;
+				
+				workbench2.copy(workbench);
+				workbench2.position.z =  widthGround / 4 + 10;
+				
+				workbench3.copy(workbench);
+				workbench3.position.z =  widthGround / 4 + 50;
+				
+				
+				scene.add(workbench)
+				scene.add(workbench2)
+				scene.add(workbench3)
+			}
+			// 墙面
+			function addWall() {
+
+
+				const offsetY = 15;
+
+				const backWall = crateWall(widthGround / 2);
+				backWall.position.x = widthGround / 4;
+				backWall.position.y = offsetY;
+
+				const leftWall = crateWall(heightGround / 2);
+				leftWall.rotation.y = Math.PI / 2;
+				leftWall.position.y = offsetY;
+				leftWall.position.z = heightGround / 4;
+				leftWall.position.x = widthGround / 2;
+
+				const frontWall = new THREE.Mesh();
+				frontWall.copy(backWall);
+				frontWall.position.z = heightGround / 2;
+
+				const rightWall = partsWall();
+				rightWall.rotation.y = -Math.PI / 2;
+				wall.add(rightWall);
+				wall.add(leftWall);
+				wall.add(frontWall);
+				wall.add(backWall);
+				scene.add(wall)
+			}
+			
+			
+			// 编辑墙面中的 添加空
+			function partsWall() {
+				const shape = new THREE.Shape();
+				let length = heightGround / 2;
+				let height = 30;
+				shape.moveTo(0, 0);
+				shape.lineTo(length, 0);
+				shape.lineTo(length, height);
+				shape.lineTo(0, height)
+
+				const hole_l = new THREE.Path();
+				hole_l.moveTo(70 , 0);
+				hole_l.lineTo(70 + 20, 0)
+				
+				hole_l.lineTo(70 + 20,  20)
+				hole_l.lineTo(70, 20)
+				shape.holes.push(hole_l)
+
+				const extrudeSettings = {
+					depth: 0.1,
+					bevelEnabled: true,
+					bevelSegments: 2,
+					steps: 2,
+					bevelSize: 0.5,
+					bevelThickness: 0.1
+				}
+				const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+				const material = new THREE.MeshLambertMaterial({
+					color: 0xffffff,
+				});
+				const frontWall = new THREE.Mesh(geometry, material);
+				return frontWall
+
+			}
+
+			function crateWall(width, height = 30, color=0xffffff) {
+				const material = new THREE.MeshLambertMaterial({
+					color: color
+				})
+				const geometry = new THREE.BoxBufferGeometry(width, height, 1);
+				const Wall = new THREE.Mesh(geometry, material);
+				return Wall;
+			}
+
+
+			function animate() {
+				requestAnimationFrame(animate);
+				renderer.render(scene, camera);
+
+				controls.update()
+				stats.update();
+				lightHelper.update();
+				// lightHelper2.update();
+			}
+
+			function render() {
+				
+				// 渲染
+				renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
+				
+				
+				
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+			}
+			// 创建地面
+			function createGround() {
+				const geometry = new THREE.PlaneGeometry(widthGround, heightGround);
+				const material = new THREE.MeshLambertMaterial({
+					color: 0xCCFFFF
+				});
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.rotation.x = (-Math.PI / 2);
+				mesh.name = "地面";
+				scene.add(mesh)
+			}
+
+			function createLight() {
+				// 环境光
+				const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+				scene.add(ambient);
+
+				// 平面光
+				const spotLight = new THREE.SpotLight(0xffffff, 1);
+				spotLight.position.set(widthGround / 4, 20 + 10, heightGround / 2);
+				// scene.add(spotLight);
+				
+				const spotLight2 = new THREE.SpotLight(0xffffff, 0.7);
+				spotLight2.position.set(0, 120, 0);
+				scene.add(spotLight2);
+				
+				
+
+				// 辅助光源
+				lightHelper = new THREE.SpotLightHelper( spotLight );
+				lightHelper2  = new THREE.SpotLightHelper( spotLight2 );
+				// scene.add( lightHelper );
+				scene.add( lightHelper2 );
+			}
+
+			function createGrid() {
+				// 添加网格地面
+				const gridHelper = new THREE.GridHelper(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+				gridHelper.material.opacity = 0.5;
+				gridHelper.material.transparent = true;
+				scene.add(gridHelper);
+
+			}
+
+			function createPanel() {
+				const panel = new GUI({
+					width: 300
+				});
+				const folder1 = panel.addFolder('是否自转');
+			}
+
+
+			function useAxesHelper() {
+				// 设置 标准尺
+				const axesHelper = new THREE.AxesHelper(100);
+				scene.add(axesHelper);
+			}
+			// fps 状态
+			function useStats() {
+				stats = new Stats()
+				document.body.appendChild(stats.dom)
+			}
+
+			function onWindowResize() {
+				log(55555)
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+
+			function log(info) {
+				console.log(info)
+			}
+		</script>
+	</body>
+</html>

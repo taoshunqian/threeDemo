@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<style type="text/css">
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE  from '../build/three.module.js';
+			import Stats from '../examples/jsm/libs/stats.module.js';
+			let renderer,scene,camera;
+			let plane;
+			let pointer, raycaster, isShiftDown = false;
+			let rollOverMesh, rollOverMaterial;
+			let stats;
+			
+			let cubeGeo, cubeMaterial;
+			
+			const objects = [];
+			const maxHeight = [];
+			
+			init()
+			render();
+			
+			function init() {
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio(window.devicePixelRatio); // 设置 设备像素
+				renderer.setSize(window.innerWidth, window.innerHeight );
+				stats = new Stats();
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
+				container.appendChild( stats.dom );
+				document.body.appendChild( renderer.domElement );
+				
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 500, 800, 1300 );
+				camera.lookAt( 0, 0, 0 );
+				
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color(0xf0f0f0);
+				
+				const rollOverGeo = new THREE.BoxGeometry(100,100,100);
+				
+				raycaster = new THREE.Raycaster(); // 光线投射用于进行鼠标拾取
+				pointer = new THREE.Vector2(); // 二维向量
+				
+				rollOverMaterial = new THREE.MeshBasicMaterial({
+					color: 0xff0000,
+					opacity: 0.5,
+					transparent: true
+				});
+				rollOverMesh = new THREE.Mesh(rollOverGeo,rollOverMaterial);
+				scene.add(rollOverMesh);
+				
+				
+				const geometry = new THREE.PlaneGeometry( 1000, 1000 );
+				geometry.rotateX( - Math.PI / 2 );
+				plane = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { visible: false } ) );
+				scene.add( plane );
+				objects.push( plane );
+				
+				const ambientLight = new THREE.AmbientLight( 0x606060 );
+				scene.add( ambientLight );
+				
+				const directionalLight = new THREE.DirectionalLight( 0xffffff );
+				directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+				scene.add( directionalLight );
+				
+				objects.push( plane );
+				
+				// 添加动态的材质
+				cubeGeo = new THREE.BoxGeometry( 100, 100, 100 );
+				cubeMaterial = new THREE.MeshLambertMaterial( { color: 0xfeb74c, map: new THREE.TextureLoader().load( '../examples/textures//square-outline-textured.png' ) } );
+				
+				const gridHelper = new THREE.GridHelper( 1000, 10 );
+				scene.add( gridHelper );
+				
+				window.addEventListener('resize', onWindowResize)
+				
+				document.addEventListener( 'pointermove', onPointerMove );
+				document.addEventListener( 'pointerdown', onPointerDown );
+				document.addEventListener( 'keydown', onDocumentKeyDown );
+				document.addEventListener( 'keyup', onDocumentKeyUp );
+				
+				
+			}
+			
+			function onPointerMove(event) {
+				pointer.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+				raycaster.setFromCamera( pointer, camera );
+				const intersects = raycaster.intersectObjects( objects, false );
+				
+				if ( intersects.length > 0 ) {
+					const intersect = intersects[ 0 ];
+					rollOverMesh.position.copy( intersect.point ).add( intersect.face.normal );
+					rollOverMesh.position.divideScalar( 100 ).floor().multiplyScalar( 100 ).addScalar( 50 );
+				}
+				render();
+				// console.log(rollOverMesh.position)
+			}
+			function onPointerDown( event ) {
+			
+				pointer.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+			
+				raycaster.setFromCamera( pointer, camera );
+			
+				const intersects = raycaster.intersectObjects( objects, false );
+			
+				if ( intersects.length > 0 ) {
+					const intersect = intersects[ 0 ];
+					if ( isShiftDown ) {
+						if ( intersect.object !== plane ) {
+							scene.remove( intersect.object );
+							objects.splice( objects.indexOf( intersect.object ), 1 );
+						}
+					} else {
+			
+						const voxel = new THREE.Mesh( cubeGeo, cubeMaterial );
+						voxel.position.copy( intersect.point ).add( intersect.face.normal );
+						voxel.position.divideScalar( 100 ).floor().multiplyScalar( 100 ).addScalar( 50 );
+						if(voxel.position.y > 200) {
+							maxHeight.push(voxel)
+						}
+						scene.add( voxel );
+						objects.push( voxel );
+			
+					}
+					render();
+				}
+			}
+			
+			function onDocumentKeyDown( event ) {
+				console.log( event.keyCode)
+				switch ( event.keyCode ) {
+					case 27: isShiftDown = true; break;
+				}
+			render();
+			}
+			function onDocumentKeyUp( event ) {
+				switch ( event.keyCode ) {
+					case 13: isShiftDown = false; break;
+				}
+			}
+			
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectonMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				render();
+			}
+			
+			function render() {
+				renderer.render(scene,camera);
+				stats.update();
+			}
+		</script>
+	</body>
+</html>
