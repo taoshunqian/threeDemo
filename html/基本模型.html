@@ -15,6 +15,54 @@
 				left: 50%;
 				top: 50%;
 			}
+
+			a {
+				color: #8ff;
+			}
+
+			.element {
+				width: 120px;
+				height: 160px;
+				box-shadow: 0px 0px 12px rgba(0, 255, 255, 0.5);
+				border: 1px solid rgba(127, 255, 255, 0.25);
+				font-family: Helvetica, sans-serif;
+				text-align: center;
+				line-height: normal;
+				cursor: default;
+			}
+
+			.element:hover {
+				box-shadow: 0px 0px 12px rgba(0, 255, 255, 0.75);
+				border: 1px solid rgba(127, 255, 255, 0.75);
+			}
+
+			.element .number {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+				font-size: 12px;
+				color: rgba(127, 255, 255, 0.75);
+			}
+
+			.element .symbol {
+				position: absolute;
+				top: 40px;
+				left: 0px;
+				right: 0px;
+				font-size: 60px;
+				font-weight: bold;
+				color: rgba(255, 255, 255, 0.75);
+				text-shadow: 0 0 10px rgba(0, 255, 255, 0.95);
+			}
+
+			.element .details {
+				position: absolute;
+				bottom: 15px;
+				left: 0px;
+				right: 0px;
+				font-size: 12px;
+				color: rgba(127, 255, 255, 0.75);
+			}
 		</style>
 	</head>
 	<body>
@@ -42,28 +90,39 @@
 			import {
 				OrbitControls
 			} from '../examples/jsm/controls/OrbitControls.js';
-			import { DRACOLoader } from '../examples/jsm/loaders/DRACOLoader.js';
-			import { Water } from '../examples/jsm/objects/Water.js';
-			import { TWEEN } from '../examples/jsm/libs/tween.module.min.js';
+			import {
+				DRACOLoader
+			} from '../examples/jsm/loaders/DRACOLoader.js';
+			import {
+				Water
+			} from '../examples/jsm/objects/Water.js';
+			import {
+				TWEEN
+			} from '../examples/jsm/libs/tween.module.min.js';
+			import { CSS3DRenderer, CSS3DObject } from '../examples/jsm/renderers/CSS3DRenderer.js';
 
 			const SCREEN_WIDTH = window.innerWidth,
 				SCREEN_HEIGHT = window.innerHeight;
 			let camera, scene, renderer, controls;
-			let lightHelper,lightHelper2;
+			let lightHelper, lightHelper2;
 			let stats;
 			const curveHandles = [];
 			let geometryGroup = new THREE.Group();
-			
+
 			let wheel = false;
-			let time,timer;
+			let time, timer;
 			const mouse = new THREE.Vector2();
 			let raycaster = new THREE.Raycaster();
 			let doorStatus = "close";
-			
-			const vec = new THREE.Vector3(8,4,9);
-			const vec2 = new THREE.Vector3(9,5,10);
+
+			const vec = new THREE.Vector3(8, 4, 9);
+			const vec2 = new THREE.Vector3(9, 5, 10);
 			log(vec.cross(vec2))
-			
+			const table = [
+				"H", "Hydrogen", "1.00794", 1, 1,
+				"He", "Helium", "4.002602", 18, 1,
+			];
+
 
 			init();
 			animate();
@@ -72,26 +131,63 @@
 				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 2000);
 
 				scene = new THREE.Scene();
-				
+
 				var textureLoader = new THREE.TextureLoader();
 				var texture = textureLoader.load('./image/bcg.jpg');
 				scene.background = texture
 				scene.castShadow = true;
-				
+
 				controls = new OrbitControls(camera, document.body)
-				// controls.autoRotate = true; // 是否自我旋转
+				controls.autoRotate = true; // 是否自我旋转
 				camera.position.set(-100, 200, 100);
-				
+
 				createGrid() // 网格地面
-				// useAxesHelper() // 标准尺
+				useAxesHelper() // 标准尺
 				createLight() // 创建光
-				createDoor() // 创建门
+				// createDoor() // 创建门
 				render() // 渲染
+				createElementTitle() // 文字的渲染
+				createTips();
 				addBox();
 				useStats() // fps 状态
 				window.addEventListener('resize', onWindowResize);
 			}
 			
+			function createTips() {
+				let w = 50;
+				const geometry = new THREE.BoxBufferGeometry(w, w , w / 15);
+				const Material = new THREE.MeshLambertMaterial({
+					color: 0xfeb74c,
+				});
+				let box = new THREE.Mesh(geometry, Material);
+				box.position.y = 100
+				scene.add(box)
+			}
+			
+			function createElementTitle() {
+				for(let i = 0;i<table.length;i+=5) {
+					const element = document.createElement('div');
+					element.className = 'element';
+					element.style.background= 'rgba(0,127,127,' + ( Math.random() * 0.5 + 0.25 ) + ')';
+					const number = document.createElement('div');
+					number.className = 'number';
+					number.textContent = (i / 5) + 1;
+					element.appendChild(number);
+					
+					const symbol = document.createElement( 'div' );
+					symbol.className = 'symbol';
+					symbol.textContent = table[ i ];
+					element.appendChild( symbol );
+					
+					const details = document.createElement( 'div' );
+					details.className = 'details';
+					details.innerHTML = table[ i + 1 ] + '<br>' + table[ i + 2 ];
+					element.appendChild( details );
+					const objectCSS = new CSS3DObject( element );
+					scene.add(objectCSS)
+				}
+			}
+
 			// 创建门
 			function createDoor() {
 				let w = 5;
@@ -101,21 +197,21 @@
 				});
 				let door = new THREE.Mesh(doorGeometry, doorMaterial);
 				door.name = "door";
-				door.position.set(0,0,0);
+				door.position.set(0, 0, 0);
 				scene.add(door);
-				
+
 			}
-			
+
 			// 创建箱子
 			function addBox() {
 				let boxGround = new THREE.Group();
 				boxGround.copy(createBox(5, 4, 50));
 				geometryGroup.add(boxGround)
 				geometryGroup.name = "GroupBox"
-				geometryGroup.position.set( -400, 50, 330)
+				geometryGroup.position.set(-40, 50, 30)
 				scene.add(geometryGroup);
 			}
-			
+			// css3d_periodictable
 			// 行（row）和列（col） 当前箱数
 			function createBox(row, col, newBoxNumber) {
 				let w = 5;
@@ -126,9 +222,9 @@
 				let now_y = 1;
 				let count = newBoxNumber;
 				let interval = 10;
-				
+
 				let boxGround = new THREE.Group();
-				
+
 				const geometry = new THREE.BoxBufferGeometry(w, w, w);
 				const cubeMaterial = new THREE.MeshLambertMaterial({
 					color: 0xfeb74c,
@@ -156,55 +252,57 @@
 					boxGround.add(box)
 				}
 				return boxGround;
-			
+
 			}
-			
-			
+
+
 			function animate() {
 				requestAnimationFrame(animate);
-				raycaster.setFromCamera( mouse, camera );
-				const intersects = raycaster.intersectObjects( scene.children , true);
-				
-				if(intersects.length) {
-					if(intersects[0].object.name == 'door') {
-						if(doorStatus == "close") {
+				raycaster.setFromCamera(mouse, camera);
+				const intersects = raycaster.intersectObjects(scene.children, true);
+
+				if (intersects.length) {
+					if (intersects[0].object.name == 'door') {
+						if (doorStatus == "close") {
 							log(intersects[0].object)
 							doorStatus = "open";
-							   var desRotation = Math.PI / 4;
-							   log(desRotation);
-							   log(Math.sin(90))
-							   new TWEEN.Tween(intersects[0].object.rotation).to({
-							           y: desRotation
-							       }, 10000).easing(TWEEN.Easing.Elastic.Out).onComplete(function(){
-							   }).start(); 
+							var desRotation = Math.PI / 4;
+							log(desRotation);
+							log(Math.sin(90))
+							new TWEEN.Tween(intersects[0].object.rotation).to({
+								y: desRotation
+							}, 10000).easing(TWEEN.Easing.Elastic.Out).onComplete(function() {}).start();
 							
+
 						}
-						
+
 					}
-					
-					
+
+
 				};
 				TWEEN.update();
 				renderer.render(scene, camera);
 				controls.update()
 				stats.update();
 			}
-			
-			
-			
-			function onMouseMove( event ) {
+
+
+
+			function onMouseMove(event) {
 				// 将鼠标位置归一化为设备坐标。x 和 y 方向的取值范围是 (-1 to +1)
-				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-			
+				mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+				mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
 			}
 			// 渲染
 			function render() {
-				
+
 				renderer = new THREE.WebGLRenderer({
 					antialias: true
 				});
 				renderer.setPixelRatio(window.devicePixelRatio);
+				// renderer = new CSS3DRenderer()
+				
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				document.body.appendChild(renderer.domElement);
 			}
@@ -216,13 +314,13 @@
 
 				// 平面光
 				const spotLight = new THREE.SpotLight(0xffffff, 1);
-				spotLight.position.set(500, 30,  200);
+				spotLight.position.set(500, 30, 200);
 				scene.add(spotLight);
-				
+
 				const spotLight2 = new THREE.SpotLight(0xffffff, 0.7);
 				spotLight2.position.set(0, 120, 0);
 				scene.add(spotLight2);
-				
+
 			}
 
 			function createGrid() {

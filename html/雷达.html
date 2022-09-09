@@ -23,6 +23,7 @@
 				Face3,
 				Geometry
 			} from '../examples/jsm/deprecated/Geometry.js';
+
 			let scene, camera, renderer, controls, mixer, tubeCurve, AgvCar;
 			let width = window.innerWidth;
 			let height = window.innerHeight
@@ -30,32 +31,35 @@
 			let ratio = {
 				value: 0
 			}
+			// import {
+			// 	initRadar
+			// } from './js/雷达.js'
 
 			// 雷达扫描的相关配置数据
 			const radarData = [{
 					position: {
-						x: -100,
+						x: 0,
 						y: 0,
 						z: 0
 					},
 					radius: 50,
-					color: '#00FFFF',
+					color: '#FFD700', // #FFD700 #00FFFF
 					opacity: 0.5,
 					angle: Math.PI * 2,
 					speed: 3
 				},
-				// {
-				//        position: {
-				//            x: 100,
-				//            y: 0,
-				//            z: 10
-				//        },
-				//        radius: 50,
-				//        color: '#f000f2',
-				//        opacity: 0.5,
-				//        angle: Math.PI,
-				//        speed: 2
-				//    },
+				{
+					position: {
+						x: 0,
+						y: 0,
+						z: 0
+					},
+					radius: 20,
+					color: '#00FFFF',
+					opacity: 0.5,
+					angle: Math.PI,
+					speed: 3
+				},
 			];
 
 			function init() {
@@ -75,7 +79,7 @@
 
 				// 相机
 				camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000)
-				camera.position.set(100, 120, 100)
+				camera.position.set(200, 222, 202)
 				scene.add(camera)
 
 				// 渲染器
@@ -86,78 +90,70 @@
 				document.body.appendChild(renderer.domElement);
 
 				const vertexShader = `
-            precision mediump float;
-            precision highp int;
-
-            varying vec2 vPosition;
-
-            void main () {
-                vPosition = vec2(position.x, position.y);
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`;
+				            precision mediump float;
+				            precision highp int;
+				
+				            varying vec2 vPosition;
+				
+				            void main () {
+				                vPosition = vec2(position.x, position.y);
+				                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+				        }`;
 				const fragmentShader = `
-            precision mediump float;
-            precision highp int;
-
-            uniform float uTime;
-            uniform float u_radius;
-            uniform float u_speed;
-            uniform float u_opacity;
-            uniform float u_width;
-            uniform vec3 u_color;
-
-            varying vec2 vPosition;
-            #define PI 3.14159265359
-
-            void main () {
-                // 计算当前扫描旋转的弧度值总数
-                float currentRadius = u_speed * uTime;
-
-                // 计算当前像素点与原点连线和x轴构成的夹角的弧度值
-                // atan 接受两个参数（y,x）时 等同于 atan2,返回的是atan(y/x)；
-                // 但比后者更稳定，返回值区间[-PI, PI]
-                float angle = atan(vPosition.y, vPosition.x) + PI;
-
-                // 计算当前像素低旋转后的弧度值，值固定在[0, PI * 2]之间
-                float angleT = mod(currentRadius + angle, PI * 2.0);
-
-                // 计算当前位置距离中心点距离
-                float dist = distance(vec2(0.0, 0.0), vPosition);
-                
-                float tempOpacity = 0.0;
-
-                // 设置雷达外层圆环的宽度
-                float circleWidth = 0.0;
-                // 如果当前点在外层圆环上， 设置一个透明度
-                if (dist < u_radius && dist > u_radius - circleWidth) {
-                    // 做一个虚化渐变效果
-                    float pct = smoothstep(u_radius - circleWidth, u_radius, dist);
-                    tempOpacity = sin(pct * PI);
-                }
-
-                // 设置雷达扫描圈的效果 (-5.0是给外层圆环和内层圆之间设置一点空白间距)
-                if (dist < (u_radius - 5.0)) {
-                    tempOpacity = 1.0 - angleT / u_width;
-                }
-
-
-
-                gl_FragColor = vec4(u_color, u_opacity * tempOpacity);
-        }
-        `;
-
+				            precision mediump float;
+				            precision highp int;
+				
+				            uniform float uTime;
+				            uniform float u_radius;
+				            uniform float u_speed;
+				            uniform float u_opacity;
+				            uniform float u_width;
+				            uniform vec3 u_color;
+				
+				            varying vec2 vPosition;
+				            #define PI 3.14159265359
+				
+				            void main () {
+				                // 计算当前扫描旋转的弧度值总数
+				                float currentRadius = u_speed * uTime;
+				
+				                // 计算当前像素点与原点连线和x轴构成的夹角的弧度值
+				                // atan 接受两个参数（y,x）时 等同于 atan2,返回的是atan(y/x)；
+				                // 但比后者更稳定，返回值区间[-PI, PI]
+				                float angle = atan(vPosition.y, vPosition.x) + PI;
+				
+				                // 计算当前像素低旋转后的弧度值，值固定在[0, PI * 2]之间
+				                float angleT = mod(currentRadius + angle, PI * 2.0);
+				
+				                // 计算当前位置距离中心点距离
+				                float dist = distance(vec2(0.0, 0.0), vPosition);
+				
+				                float tempOpacity = 0.0;
+				
+				                // 设置雷达外层圆环的宽度
+				                float circleWidth = 0.0;
+				                // 如果当前点在外层圆环上， 设置一个透明度
+				                if (dist < u_radius && dist > u_radius - circleWidth) {
+				                    // 做一个虚化渐变效果
+				                    float pct = smoothstep(u_radius - circleWidth, u_radius, dist);
+				                    tempOpacity = sin(pct * PI);
+				                }
+				
+				                // 设置雷达扫描圈的效果 (-5.0是给外层圆环和内层圆之间设置一点空白间距)
+				                if (dist < (u_radius - 5.0)) {
+				                    tempOpacity = 1.0 - angleT / u_width;
+				                }
+				
+				
+				
+				                gl_FragColor = vec4(u_color, u_opacity * tempOpacity);
+				        }
+				        `;
 				// 创建雷达扫描
-				// radarData.forEach(item => {
-				// 	initRadar(item);
-				// });
-				
-				let lightShape = getAureole(20, 100, "#00FFFF")
-				console.log(lightShape)
-				lightShape.position.set(0,0,0)
-				// lightShape.rotation.set(5,5,5)
-				scene.add(lightShape);
-			
-				
+				radarData.forEach(item => {
+					initRadar(item);
+				});
+
 				function initRadar(options) {
 					const {
 						position,
@@ -200,105 +196,8 @@
 					let planeMesh = new THREE.Mesh(plane, material_1);
 					scene.add(planeMesh);
 
-
-					
-
 					planeMesh.rotation.x = -0.5 * Math.PI
 					planeMesh.position.copy(position);
-				}
-
-				function getAureole(radius, height, color) {
-					let geo, mat;
-					let segment = 64;
-					//geo
-					let bottomPos = [];
-					let topPos = [];
-					let Pos = []
-					let topPos2 = []
-					let angleOffset = Math.PI * 2 / segment;
-					for (var i = 0; i < segment; i++) {
-						let x = Math.cos(angleOffset * i) * radius;
-						let z = Math.sin(angleOffset * i) * radius;
-						bottomPos.push(new THREE.Vector3(x, 0, z));
-						topPos.push(new THREE.Vector3(x, height, z));
-						Pos.push(x, 0, z)
-						topPos2.push(x, height, z)
-					}
-					
-					bottomPos = bottomPos.concat(topPos);
-					
-					// Pos = Pos.concat(topPos2);
-					console.log(topPos2, Pos)
-					let face = []
-					for (var i = 0; i < segment; i++) {
-						if (i != segment - 1) {
-							// face.push(new Face3(i + segment + 1, i, i + segment));
-							// face.push(new Face3(i, i + segment + 1, i + 1));
-							face.push(i + segment + 1, i, i + segment);
-							face.push(i, i + segment + 1, i + 1);
-						} else {
-							// face.push(new Face3(segment, i, i + segment));
-							// face.push(new Face3(i, segment, 0));
-							face.push(segment, i, i + segment);
-							face.push(i, segment, 0);
-						}
-					}
-					
-					geo = new THREE.BufferGeometry();
-					// const vertices = new Float32Array( [
-					// 	-1.0, -1.0,  1.0,
-					// 	 1.0, -1.0,  1.0,
-					// 	 1.0,  1.0,  1.0,
-					
-					// 	 1.0,  1.0,  1.0,
-					// 	-1.0,  1.0,  1.0,
-					// 	-1.0, -1.0,  1.0
-					// ] );
-					const vertices = new Float32Array(Pos)
-					geo.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
-					// geo.vertices = bottomPos;
-					// geo.faces = face;
-// console.log(geo)
-					//mat
-
-					let c = new THREE.Color(color);
-					mat = new THREE.ShaderMaterial({
-						// color: color,
-						uniforms: {
-							targetColor: {
-								value: new THREE.Vector3(c.r, c.g, c.b)
-							},
-							height: {
-								value: height
-							},
-						},
-						side: THREE.DoubleSide,
-						transparent: true,
-						//depthTest:false,
-						depthWrite: false,
-						vertexShader: [
-							"varying vec3 modelPos;",
-							"void main() {",
-							"   modelPos = position;",
-							"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
-							"}"
-						].join("\n"),
-						fragmentShader: [
-							"uniform vec3 targetColor;",
-							"uniform float height;",
-							"varying vec3 modelPos;",
-
-							"void main() {",
-							"   gl_FragColor = vec4(targetColor.xyz,(1.0 - modelPos.y/height)*(1.0 - modelPos.y/height));",
-							"}"
-						].join("\n")
-					});
-					
-					// console.log(geo, mat)
-
-					let mesh = new THREE.Mesh(geo, mat);
-					// mesh.renderOrder = 9999
-					return mesh;
 				}
 
 
