@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js - pointerlock controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+
+			#blocker {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="backgroundImage">
+		</div>
+
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE from '../build/three.module.js';
+			import {
+				PointerLockControls
+			} from '../examples/jsm/controls/PointerLockControls.js';
+			import Stats from '../examples/jsm/libs/stats.module.js';
+			import {
+				GLTFLoader
+			} from '../examples/jsm/loaders/GLTFLoader.js';
+			import {
+				ThreeMFLoader
+			} from '../examples/jsm/loaders/3MFLoader.js';
+			import {
+				OrbitControls
+			} from '../examples/jsm/controls/OrbitControls.js';
+			import {
+				GUI
+			} from '../examples/jsm/libs/dat.gui.module.js';
+			import { DRACOLoader } from '../examples/jsm/loaders/DRACOLoader.js';
+
+			const SCREEN_WIDTH = window.innerWidth,
+				SCREEN_HEIGHT = window.innerHeight;
+			let camera, scene, renderer, controls;
+			let stats;
+
+			let widthGround = 150,
+				heightGround = 250;
+			let wall = new THREE.Group();
+			const curveHandles = [];
+			let raycaster = new THREE.Raycaster();
+			let ObjectSects = [];
+			
+
+			init();
+			animate();
+			
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 1000);
+
+				scene = new THREE.Scene();
+				
+				var textTure = new THREE.TextureLoader().load('./image/tg.jpg');
+				scene.background = textTure;
+				
+				const axesHelper = new THREE.AxesHelper(50);
+				scene.add(axesHelper);
+
+				controls = new OrbitControls(camera, document.body)
+				controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(0, 100, 120);
+				stats = new Stats()
+				render();
+				window.addEventListener('resize', onWindowResize);
+			}
+			
+			function addSky() {
+				const skyGeomaetry = new THREE.SphereGeometry(1000, 60, 60);
+				const key
+			}
+			
+			
+			
+			function render() {
+				// 渲染
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					alpha: true
+				});
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+			}
+			
+			
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			
+			}
+			function animate() {
+				stats.update();
+				renderer.render(scene, camera);
+				requestAnimationFrame(animate);
+				controls.update()
+			}
+			
+			function log(info) {
+				console.log(info)
+			}
+			
+			
+			
+			
+
+
+
+			
+			
+		</script>
+	</body>
+</html>

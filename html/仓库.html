@@ -61,16 +61,10 @@
 			let widthGround = 150,
 				heightGround = 250;
 			let wall = new THREE.Group();
-			let golge = new THREE.Group();
 			const curveHandles = [];
-			// window.addEventListener('click', meshOnClick);
+			window.addEventListener('click', meshOnClick);
 			let raycaster = new THREE.Raycaster();
 			let ObjectSects = [];
-			let light1;
-			let wheel = false;
-			
-			
-			
 			
 
 			init();
@@ -81,19 +75,17 @@
 				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 1000);
 
 				scene = new THREE.Scene();
-				
+
 				scene.background = new THREE.Color(0x000000)
-				
+
 				controls = new OrbitControls(camera, document.body)
-				controls.autoRotate = true; // 是否自我旋转
-				camera.position.set(-50, 150, 220);
+				// controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(-50, 100, 120);
 				controls.update();
 
 				createGround() // 地面
-				// createGrid() // 网格地面
+				createGrid() // 网格地面
 				addWall(); // 墙面
-				addWall2()
-				workbenchGroup()
 				addBox(); // 设置箱子
 				addSos(); // 设计轨道
 
@@ -102,20 +94,7 @@
 				// creatModelCar();
 				render() // 渲染
 				useStats() // fps 状态
-				let timer,time = 0;
-				
 				window.addEventListener('resize', onWindowResize);
-				window.addEventListener("wheel",function(e){
-					wheel = true;
-					time = 0;
-					clearInterval(timer)
-					timer = setInterval(() => {
-						time++;
-						if(time == 5) {
-							wheel = false;
-						}
-					}, 1000);
-				})
 			}
 			
 			
@@ -154,30 +133,8 @@
 				const boxGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 				const boxMaterial = new THREE.MeshBasicMaterial();
 				const initialPoints = [
-					{ x: -20, y: 0, z: -100 },
-					{ x: -20, y: 0, z: 75 },
-					{ x: -50, y: 0, z: 75 },
-					{ x: -20, y: 0, z: 75 },
-					
-					{ x: -20, y: 0, z: 28 },
-					{ x: -50, y: 0, z: 28 },
-					{ x: -20, y: 0, z: 28 },
-					{ x: -20, y: 0, z: -100 },
-					
-					{ x: -20, y: 0, z: 75 },
-					
-					{ x: 20, y: 0, z: 75 },
-					{ x: 50, y: 0, z: 75 },
-					{ x: -20, y: 0, z: 75 },
-					
-					{ x: -20, y: 0, z: 120 },
-					{ x: -50, y: 0, z: 120 },
-					{ x: -20, y: 0, z: 120 },
-					
-					{ x: -20, y: 0, z: 28 },
-					{ x: -50, y: 0, z: 28 },
-					{ x: -20, y: 0, z: 28 },
-					{ x: -20, y: 0, z: -100 },
+					{ x: -50, y: 0, z: -100 },
+					{ x: -50, y: 0, z: 80 },
 				];
 				for ( const handlePos of initialPoints ) {
 				
@@ -194,11 +151,11 @@
 				curve.closed = true;
 				const points = curve.getPoints( 2000 );
 				
-				// const line = new THREE.LineLoop(
-				// 	new THREE.BufferGeometry().setFromPoints( points ),
-				// 	new THREE.LineBasicMaterial( { color: 0x00ff00 } )
-				// );
-				// scene.add( line );
+				const line = new THREE.LineLoop(
+					new THREE.BufferGeometry().setFromPoints( points ),
+					new THREE.LineBasicMaterial( { color: 0x00ff00 } )
+				);
+				scene.add( line );
 				
 				// creatModelCar(points)
 				
@@ -207,51 +164,26 @@
 					"./小幽灵.glb",
 					function (gltf) {
 						var mesh = gltf.scene.children[0];
-						var group = new THREE.Group()
-						// var mesh.copy(mesh)
-						log(mesh)
-						const s = 2;
+						// log(mesh)
+						const s = 5;
 						mesh.scale.set(s,s,s); // 缩小
-						
+						mesh.position.set(initialPoints[0].x,initialPoints[0].y,initialPoints[0].z)
 						mesh.castShadow = true;
 						mesh.receiveShadow = true;
 						mesh.name = "小幽灵";
-						const sphere = new THREE.SphereGeometry( 0.1, 0.1, 1 );
-						light1 = new THREE.PointLight( 0xff0040, 2, 50 );
-						light1.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
-						light1.position.set(0, 30 , 0)
-						mesh.position.set(0,5,0);
-						group.add(mesh)
-						group.add(light1)
-						group.position.set(initialPoints[0].x,initialPoints[0].y,initialPoints[0].z)
-						
-						// scene.add( light1 );
-						scene.add( group );
+						scene.add( mesh );
 						let _i = 0;
-						let num = 0;
 						let timer;
 						timer = setInterval(() => {
-							group.position.set(points[_i].x,points[_i].y,points[_i].z);
-							num++;
-							// camera.position.set(points[_i].x,points[_i].y,points[_i].z);
-							// if(!wheel) {
-							// 	camera.position.set(-points[_i].x,points[_i].y + 60,points[_i].z > 0 ? points[_i].z + 50 : points[_i].z   - 50);
-							// }
-							
-							
+							mesh.position.set(points[_i].x,points[_i].y,points[_i].z);
 							_i++;
-							if(_i>2000-1){
-								// clearInterval(timer)
-								_i = 0
+							if(_i>1000-1){
+								clearInterval(timer)
+								// scene.remove(mesh);
 							}  else {
-								group.lookAt(points[_i+1].x,points[_i+1].y ,points[_i+1].z);
-								// if(num==100) {
-								// 	camera.lookAt(-points[_i +1].x,points[_i +1].y + 60,points[_i +1].z > 0 ? points[_i +1].z + 50 : points[_i + 1].z   - 50);
-								// 	num = 0
-								// }
-							// camera.lookAt(-points[_i +1].x,points[_i +1].y + 60,points[_i +1].z > 0 ? points[_i +1].z + 50 : points[_i + 1].z   - 50);
+								mesh.lookAt(points[_i+1].x,points[_i+1].y,points[_i+1].z);
 							};
-						}, 20);
+						}, 2);
 						},
 					function (xhr) {
 						console.log((xhr.loaded / xhr.total) * 100 + "% loaded")
@@ -262,40 +194,21 @@
 				)
 			}
 
+
 			// 箱子
 			function addBox() {
 				const boxVector3 = new THREE.Vector3(0, 0, 15);
 				let boxGround = new THREE.Group();
 				let boxGround2 = new THREE.Group();
 				let boxGround3 = new THREE.Group();
-				let boxGround4 = new THREE.Group();
-				
-				let boxGround5 = new THREE.Group();
-				let boxGround6 = new THREE.Group();
-				
 				boxGround.copy(createBox(5, 4, 50))
-				boxGround2.copy(createBox(5, 4, 30));
-				boxGround3.copy(createBox(5, 2, 40));
-				
-				boxGround4.copy(createBox(12, 2, 48));
-				boxGround4.position.set(0,0,80)
-				
-				boxGround6.copy(createBox(14, 3, 200));
-				boxGround6.position.set(0,0,100)
-				
-				boxGround5.copy(createBox(10, 5, 200));
-				boxGround5.position.set(80,0,0)
-				boxGround5.rotation.y = -Math.PI /2 
-				
+				boxGround2.copy(createBox(5, 4, 20));
+				boxGround3.copy(createBox(5, 2, 20));
 				boxGround.position.copy(boxVector3);
-				boxGround2.position.set(0, 0, 40);
-				
+				boxGround2.position.set(10, 0, 50);
 				scene.add(boxGround);
 				scene.add(boxGround2);
 				scene.add(boxGround3);
-				scene.add(boxGround4);
-				scene.add(boxGround5);
-				scene.add(boxGround6);
 			}
 
 			// 行（row）和列（col） 当前箱数 
@@ -330,66 +243,20 @@
 					}
 					let box = new THREE.Mesh(geometry, cubeMaterial);
 					box.name = "box" + i;
+					let edges = new THREE.EdgesHelper(box, 0x000000);
+					edges.name = 'boxBorder' + i;
 					box.position.set(x_length, y_length + w / 2, z_length);
+					edges.position.set(x_length, y_length + w / 2, z_length);
 					boxGround.add(box)
+					boxGround.add(edges);
 					ObjectSects.push(box)
 				}
 
 				return boxGround;
 
 			}
-			
-			function workbenchGroup() {
-				const offsetY = 15;
-				let workbench = new THREE.Group();
-				const backWall = crateWall(widthGround / 2 - 40, 30, 0xcdcdcd);
-				const noodles = crateWall(widthGround / 2 - 45,20,0xcdcdcd);
-				const shade = crateWall(widthGround / 2 - 55,30,0xf0f0f0);
-				shade.rotation.y = Math.PI / 2;
-				shade.position.x = 18;
-				shade.position.z = 10;
 
-				const leg = crateWall(2,15,0xcdcdcd);
-				leg.position.z = 18;
-				leg.position.x = -10;
-				leg.position.y = -offsetY / 2 ;
-				const leg2 = new THREE.Mesh();
-				leg2.copy(leg);
-				leg2.position.x = 10;
-				
-				noodles.rotation.x = Math.PI / 2;
-				noodles.position.x = -2;
-				noodles.position.z = 10;
-				
-				workbench.add(leg2);
-				workbench.add(shade);
-				workbench.add(leg);
-				workbench.add(noodles);
-				workbench.add(backWall);
-				return workbench
-			}
-			
-			function addWall2() {
-				const offsetY = 15;
-				let workbench = new THREE.Group();
-				let workbench2 = new THREE.Group();
-				let workbench3 = new THREE.Group();
-				
-				workbench.copy(workbenchGroup())
-				workbench.position.x = - widthGround / 4  - 20;
-				workbench.position.y = offsetY;
-				
-				workbench2.copy(workbench);
-				workbench2.position.z =  widthGround / 4 + 10;
-				
-				workbench3.copy(workbench);
-				workbench3.position.z =  widthGround / 4 + 50;
-				
-				
-				scene.add(workbench)
-				scene.add(workbench2)
-				scene.add(workbench3)
-			}
+
 			// 墙面
 			function addWall() {
 
@@ -432,9 +299,8 @@
 
 				const hole_l = new THREE.Path();
 				hole_l.moveTo(70 , 0);
-				hole_l.lineTo(70 + 20, 0)
-				
-				hole_l.lineTo(70 + 20,  20)
+				hole_l.lineTo(70 + 10, 0)
+				hole_l.lineTo(70 + 10,  20)
 				hole_l.lineTo(70, 20)
 				shape.holes.push(hole_l)
 
@@ -449,15 +315,17 @@
 				const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 				const material = new THREE.MeshLambertMaterial({
 					color: 0xffffff,
+					transparent: true, // 设置 透明度
+					opacity : 0.5
 				});
 				const frontWall = new THREE.Mesh(geometry, material);
 				return frontWall
 
 			}
 
-			function crateWall(width, height = 30, color=0xffffff) {
+			function crateWall(width, height = 30) {
 				const material = new THREE.MeshLambertMaterial({
-					color: color
+					color: 0xffffff
 				})
 				const geometry = new THREE.BoxBufferGeometry(width, height, 1);
 				const Wall = new THREE.Mesh(geometry, material);
@@ -471,19 +339,16 @@
 
 				controls.update()
 				stats.update();
-				lightHelper.update();
+				// lightHelper.update();
 				// lightHelper2.update();
 			}
 
 			function render() {
-				
 				// 渲染
 				renderer = new THREE.WebGLRenderer({
-					antialias: true
+					antialias: true,
+					alpha: true
 				});
-				
-				
-				
 				renderer.setPixelRatio(window.devicePixelRatio);
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				document.body.appendChild(renderer.domElement);
@@ -502,25 +367,23 @@
 
 			function createLight() {
 				// 环境光
-				const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+				const ambient = new THREE.AmbientLight(0xffffff, 0.5);
 				scene.add(ambient);
 
 				// 平面光
 				const spotLight = new THREE.SpotLight(0xffffff, 1);
-				spotLight.position.set(widthGround / 4, 20 + 10, heightGround / 2);
-				// scene.add(spotLight);
+				spotLight.position.set(0, 70, 120);
+				scene.add(spotLight);
 				
-				const spotLight2 = new THREE.SpotLight(0xffffff, 0.7);
-				spotLight2.position.set(0, 120, 0);
+				const spotLight2 = new THREE.SpotLight(0xffffff, 1);
+				spotLight2.position.set(0, 80, -120);
 				scene.add(spotLight2);
-				
-				
 
 				// 辅助光源
-				lightHelper = new THREE.SpotLightHelper( spotLight );
-				lightHelper2  = new THREE.SpotLightHelper( spotLight2 );
+				// lightHelper = new THREE.SpotLightHelper( spotLight );
+				// lightHelper2  = new THREE.SpotLightHelper( spotLight2 );
 				// scene.add( lightHelper );
-				scene.add( lightHelper2 );
+				// scene.add( lightHelper2 );
 			}
 
 			function createGrid() {
@@ -552,7 +415,6 @@
 			}
 
 			function onWindowResize() {
-				log(55555)
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
 				renderer.setSize(window.innerWidth, window.innerHeight);
