@@ -243,12 +243,12 @@
 					}
 					let box = new THREE.Mesh(geometry, cubeMaterial);
 					box.name = "box" + i;
-					let edges = new THREE.EdgesHelper(box, 0x000000);
-					edges.name = 'boxBorder' + i;
+					// let edges = new THREE.EdgesHelper(box, 0x000000);
+					// edges.name = 'boxBorder' + i;
 					box.position.set(x_length, y_length + w / 2, z_length);
-					edges.position.set(x_length, y_length + w / 2, z_length);
+					// edges.position.set(x_length, y_length + w / 2, z_length);
 					boxGround.add(box)
-					boxGround.add(edges);
+					// boxGround.add(edges);
 					ObjectSects.push(box)
 				}
 

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js - pointerlock controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+
+			#blocker {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="blocker">
+			<div id="instructions">
+				<p style="font-size:36px">
+
+				</p>
+			</div>
+		</div>
+
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE from '../../build/three.module.js';
+			import {
+				PointerLockControls
+			} from '../../examples/jsm/controls/PointerLockControls.js';
+			import Stats from '../../examples/jsm/libs/stats.module.js';
+			import {
+				GLTFLoader
+			} from '../../examples/jsm/loaders/GLTFLoader.js';
+			import {
+				ThreeMFLoader
+			} from '../../examples/jsm/loaders/3MFLoader.js';
+			import {
+				OrbitControls
+			} from '../../examples/jsm/controls/OrbitControls.js';
+			import {
+				GUI
+			} from '../../examples/jsm/libs/dat.gui.module.js';
+			import {
+				DRACOLoader
+			} from '../../examples/jsm/loaders/DRACOLoader.js';
+
+
+			const SCREEN_WIDTH = window.innerWidth,
+				SCREEN_HEIGHT = window.innerHeight;
+			let camera, scene, renderer, controls;
+			let lightHelper, lightHelper2;
+			let stats;
+
+			let widthGround = 300 * 2,
+				heightGround = 500 * 2;
+			// let wallWith  = 500, wallHeight = 500;
+			let wall = new THREE.Group();
+			const curveHandles = [];
+			// window.addEventListener('click', meshOnClick);
+			let raycaster = new THREE.Raycaster();
+			let ObjectSects = [];
+
+
+			init();
+			animate();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 2000);
+
+				scene = new THREE.Scene();
+
+				scene.background = new THREE.Color(0x000000)
+
+				controls = new OrbitControls(camera, document.body)
+				// controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(600, 500, 300);
+				controls.update();
+
+				// createGround() // 地面
+				createGrid() // 网格地面
+				addWall(); // 墙面
+
+				useAxesHelper() // 标准尺
+				createLight() // 创建光
+				render() // 渲染
+				useStats() // fps 状态
+				window.addEventListener('resize', onWindowResize);
+			}
+
+
+
+
+			// 墙面
+			function addWall() {
+				
+				externalWall(); // 外墙
+				wcWall(); // wc
+				warehouseWall(); // 仓库
+				
+				function warehouseWall() {
+					const weWall = new THREE.Group();
+					let weWidth = widthGround / 3;
+					const weBackWall = crateWall(weWidth);
+					weBackWall.position.x = -weWidth;
+					weBackWall.position.z = weWidth / 0.7;
+					const weRightWall = new THREE.Mesh();
+					weRightWall.copy(weBackWall);
+					weRightWall.position.z = weWidth * 0.5 ;
+					
+					weWall.add(weBackWall);
+					weWall.add(weRightWall);
+					scene.add(weWall);
+				};
+				
+				function wcWall() {
+					const wcWall = new THREE.Group();
+					let wcWidth = widthGround / 4
+					let wcZ = -widthGround / 2 + wcWidth / 2;
+					let wcX =  heightGround / 2 - wcWidth;
+					const wcBackWall = crateWall(wcWidth);
+					wcBackWall.position.x = wcZ;
+					wcBackWall.position.z = wcX;
+					const wcRightWall = new THREE.Mesh();
+					wcRightWall.copy(wcBackWall);
+					wcRightWall.rotation.y = Math.PI / 2;
+					wcRightWall.position.x = -wcWidth;
+					wcRightWall.position.z = widthGround - wcWidth - 30;
+					wcWall.add(wcRightWall);
+					wcWall.add(wcBackWall);
+					scene.add(wcWall)
+				}
+				function externalWall() {
+					const backWall = crateWall(widthGround);
+					const frontWall = new THREE.Mesh();
+					frontWall.copy(backWall)
+					backWall.position.z = -heightGround / 2;
+					frontWall.position.z = heightGround / 2;
+					
+					const leftWall = crateWall(heightGround);
+					leftWall.rotation.y = Math.PI / 2;
+					leftWall.position.x = -widthGround / 2;
+					
+					const rightWall = new THREE.Mesh();
+					rightWall.copy(leftWall)
+					leftWall.position.x = widthGround / 2;
+					
+					wall.add(rightWall);
+					wall.add(leftWall);
+					wall.add(backWall);
+					
+					wall.add(frontWall);
+					wall.name = "外墙"
+					scene.add(wall)
+				}
+			}
+
+
+			// 编辑墙面中的 添加空
+			function partsWall() {
+				const shape = new THREE.Shape();
+				let length = heightGround / 2;
+				let height = 30;
+				shape.moveTo(0, 0);
+				shape.lineTo(length, 0);
+				shape.lineTo(length, height);
+				shape.lineTo(0, height)
+
+				const hole_l = new THREE.Path();
+				hole_l.moveTo(70, 0);
+				hole_l.lineTo(70 + 10, 0)
+				hole_l.lineTo(70 + 10, 20)
+				hole_l.lineTo(70, 20)
+				shape.holes.push(hole_l)
+
+				const extrudeSettings = {
+					depth: 0.1,
+					bevelEnabled: true,
+					bevelSegments: 2,
+					steps: 2,
+					bevelSize: 0.5,
+					bevelThickness: 0.1
+				}
+				const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+				const material = new THREE.MeshLambertMaterial({
+					color: 0x00FFFF,
+					transparent: true, // 设置 透明度
+					opacity: 0.5
+				});
+				const frontWall = new THREE.Mesh(geometry, material);
+				return frontWall
+
+			}
+			// 创建普通的墙面
+			function crateWall(width, height = 50, color = 0x00FFFF) {
+				const material = new THREE.MeshLambertMaterial({
+					color: color,
+					transparent: true, // 设置 透明度
+					opacity: 0.5
+				})
+				const geometry = new THREE.BoxBufferGeometry(width, height, 1);
+				const Wall = new THREE.Mesh(geometry, material);
+				Wall.position.y = height / 2;
+				return Wall;
+			}
+
+
+			function animate() {
+				requestAnimationFrame(animate);
+				renderer.render(scene, camera);
+
+				controls.update()
+				stats.update();
+				// lightHelper.update();
+				// lightHelper2.update();
+			}
+
+			function render() {
+				// 渲染
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					alpha: true
+				});
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+			}
+			// 创建地面
+			function createGround() {
+				const geometry = new THREE.PlaneGeometry(widthGround, heightGround);
+				const material = new THREE.MeshLambertMaterial({
+					color: 0xCCFFFF
+				});
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.rotation.x = (-Math.PI / 2);
+				mesh.name = "地面";
+				scene.add(mesh)
+			}
+
+			function createLight() {
+				// 环境光
+				const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+				scene.add(ambient);
+
+				// 平面光
+				const spotLight = new THREE.SpotLight(0xffffff, 1);
+				spotLight.position.set(0, 1500, 0);
+				scene.add(spotLight);
+
+				// const spotLight2 = new THREE.SpotLight(0xffffff, 1);
+				// spotLight2.position.set(0, 80, -120);
+				// scene.add(spotLight2);
+
+				// 辅助光源
+				// lightHelper = new THREE.SpotLightHelper( spotLight );
+				// lightHelper2  = new THREE.SpotLightHelper( spotLight2 );
+				// scene.add( lightHelper );
+				// scene.add( lightHelper2 );
+			}
+
+			function createGrid() {
+				// 添加网格地面
+				const gridHelper = new THREE.GridHelper(widthGround * 2, heightGround * 2);
+				gridHelper.material.opacity = 0.5;
+				gridHelper.material.transparent = true;
+				scene.add(gridHelper);
+
+			}
+
+			function createPanel() {
+				const panel = new GUI({
+					width: 300
+				});
+				const folder1 = panel.addFolder('是否自转');
+			}
+
+
+			function useAxesHelper() {
+				// 设置 标准尺
+				const axesHelper = new THREE.AxesHelper(100);
+				scene.add(axesHelper);
+			}
+			// fps 状态
+			function useStats() {
+				stats = new Stats()
+				document.body.appendChild(stats.dom)
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+
+			function log(info) {
+				console.log(info)
+			}
+		</script>
+	</body>
+</html>
