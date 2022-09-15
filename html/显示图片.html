@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js - pointerlock controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+
+			#blocker {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+			}
+
+			a {
+				color: #8ff;
+			}
+
+			.element {
+				width: 120px;
+				height: 160px;
+				box-shadow: 0px 0px 12px rgba(0, 255, 255, 0.5);
+				border: 1px solid rgba(127, 255, 255, 0.25);
+				font-family: Helvetica, sans-serif;
+				text-align: center;
+				line-height: normal;
+				cursor: default;
+			}
+
+			.element:hover {
+				box-shadow: 0px 0px 12px rgba(0, 255, 255, 0.75);
+				border: 1px solid rgba(127, 255, 255, 0.75);
+			}
+
+			.element .number {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+				font-size: 12px;
+				color: rgba(127, 255, 255, 0.75);
+			}
+
+			.element .symbol {
+				position: absolute;
+				top: 40px;
+				left: 0px;
+				right: 0px;
+				font-size: 60px;
+				font-weight: bold;
+				color: rgba(255, 255, 255, 0.75);
+				text-shadow: 0 0 10px rgba(0, 255, 255, 0.95);
+			}
+
+			.element .details {
+				position: absolute;
+				bottom: 15px;
+				left: 0px;
+				right: 0px;
+				font-size: 12px;
+				color: rgba(127, 255, 255, 0.75);
+			}
+		</style>
+	</head>
+	<body>
+		<div id="blocker">
+			<div id="instructions">
+				<p style="font-size:36px">
+
+				</p>
+			</div>
+		</div>
+
+		<script type="module">
+			// 红色 x ， 绿色 y  蓝色 z
+			import * as THREE from '../build/three.module.js';
+			import {
+				PointerLockControls
+			} from '../examples/jsm/controls/PointerLockControls.js';
+			import Stats from '../examples/jsm/libs/stats.module.js';
+			import {
+				GLTFLoader
+			} from '../examples/jsm/loaders/GLTFLoader.js';
+			import {
+				ThreeMFLoader
+			} from '../examples/jsm/loaders/3MFLoader.js';
+			import {
+				OrbitControls
+			} from '../examples/jsm/controls/OrbitControls.js';
+			import {
+				DRACOLoader
+			} from '../examples/jsm/loaders/DRACOLoader.js';
+			import {
+				Water
+			} from '../examples/jsm/objects/Water.js';
+			import {
+				TWEEN
+			} from '../examples/jsm/libs/tween.module.min.js';
+			import { CSS3DRenderer, CSS3DObject } from '../examples/jsm/renderers/CSS3DRenderer.js';
+
+			const SCREEN_WIDTH = window.innerWidth,
+				SCREEN_HEIGHT = window.innerHeight;
+			let camera, scene, renderer, controls;
+			let lightHelper, lightHelper2;
+			let stats;
+			const curveHandles = [];
+			let geometryGroup = new THREE.Group();
+
+			let wheel = false;
+			let time, timer;
+			const mouse = new THREE.Vector2();
+			let raycaster = new THREE.Raycaster();
+
+			init();
+			animate();
+
+			function init() {
+				camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 2000);
+
+				scene = new THREE.Scene();
+
+				// var textureLoader = new THREE.TextureLoader();
+				// var texture = textureLoader.load('./image/bcg.jpg');
+				// scene.background = texture
+				// scene.castShadow = true;
+
+				controls = new OrbitControls(camera, document.body)
+				// controls.autoRotate = true; // 是否自我旋转
+				camera.position.set(-100, 200, 100);
+
+				createGrid() // 网格地面
+				useAxesHelper() // 标准尺
+				createLight() // 创建光
+				render() // 渲染
+				createTips()
+				useStats() // fps 状态
+				window.addEventListener('resize', onWindowResize);
+			}
+			
+			function createTips() {
+				var textureLoader = new THREE.TextureLoader();
+				var texture = textureLoader.load('./image/警告.png');
+				
+				let h = 150;
+				let w = h / 3.33;
+				const mat = new THREE.MeshBasicMaterial({
+					map: texture,
+					side: THREE.DoubleSide,
+					transparent: true
+				});
+				const geom = new THREE.PlaneGeometry(w, h);
+				const mesh = new THREE.Mesh(geom, mat);
+				mesh.position.y = h / 2;
+				mesh.position.z = h / 2;
+				scene.add(mesh)
+			}
+
+
+
+			function animate() {
+				requestAnimationFrame(animate);
+				raycaster.setFromCamera(mouse, camera);
+				const intersects = raycaster.intersectObjects(scene.children, true);
+				TWEEN.update();
+				renderer.render(scene, camera);
+				controls.update()
+				stats.update();
+			}
+
+
+
+			function onMouseMove(event) {
+				// 将鼠标位置归一化为设备坐标。x 和 y 方向的取值范围是 (-1 to +1)
+				mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+				mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+			}
+			// 渲染
+			function render() {
+
+				renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
+				renderer.setPixelRatio(window.devicePixelRatio);
+				// renderer = new CSS3DRenderer()
+				
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+			}
+
+			function createLight() {
+				// 环境光
+				const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+				scene.add(ambient);
+
+				// 平面光
+				const spotLight = new THREE.SpotLight(0xffffff, 1);
+				spotLight.position.set(500, 30, 200);
+				scene.add(spotLight);
+
+				const spotLight2 = new THREE.SpotLight(0xffffff, 0.7);
+				spotLight2.position.set(0, 120, 0);
+				scene.add(spotLight2);
+
+			}
+
+			function createGrid() {
+				// 添加网格地面
+				const gridHelper = new THREE.GridHelper(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+				gridHelper.material.opacity = 0.5;
+				gridHelper.material.transparent = true;
+				scene.add(gridHelper);
+			}
+
+
+
+			function useAxesHelper() {
+				// 设置 标准尺
+				const axesHelper = new THREE.AxesHelper(100);
+				scene.add(axesHelper);
+			}
+			// fps 状态
+			function useStats() {
+				stats = new Stats()
+				document.body.appendChild(stats.dom)
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+
+			function log(info) {
+				console.log(info)
+			}
+		</script>
+	</body>
+</html>
